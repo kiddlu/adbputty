@@ -1,0 +1,8 @@
+#include "rcstuff.h"
+
+#define APPNAME "PSFTP"
+#define APPDESC "命令行交互 SFTP 客户端"
+
+200 ICON "pscp.ico"
+
+#include "version.rc2"
