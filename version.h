@@ -10,5 +10,5 @@
 
 #define RELEASE "0.64cn"
 #define TEXTVER "·¢²¼°æ 0.64cn"
-#define SSHVER "PuTTY-Unidentified-Local-Build"
+#define SSHVER "PuTTY-ADB-Enhanced-Build"
 #define BINARY_VERSION 0,0,0,0
