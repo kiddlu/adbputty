@@ -203,10 +203,10 @@ TERMINAL = terminal wcwidth ldiscucs logging tree234 minibidi
 
 # GUI front end and terminal emulator (putty, puttytel).
 GUITERM  = TERMINAL window windlg winctrls sizetip winucs winprint
-         + winutils wincfg sercfg winhelp winjump
+         + winutils wincfg sercfg winhelp winjump miscucs
 
 # Same thing on Unix.
-UXTERM   = TERMINAL uxcfg sercfg uxucs uxprint timing callback
+UXTERM   = TERMINAL uxcfg sercfg uxucs uxprint timing callback miscucs
 GTKTERM  = UXTERM gtkwin gtkcfg gtkdlg gtkfont gtkcols xkeysym
 OSXTERM  = UXTERM osxwin osxdlg osxctrls
 
@@ -230,8 +230,8 @@ SFTP     = sftp int64 logging
 MISC     = timing callback misc version settings tree234 proxy conf
 WINMISC  = MISC winstore winnet winhandl cmdline windefs winmisc winproxy
          + wintime winhsock errsock
-UXMISC   = MISC uxstore uxsel uxnet cmdline uxmisc uxproxy time
-OSXMISC  = MISC uxstore uxsel osxsel uxnet uxmisc uxproxy time
+UXMISC   = MISC uxstore uxsel uxnet uxpeer cmdline uxmisc uxproxy time
+OSXMISC  = MISC uxstore uxsel osxsel uxnet uxpeer uxmisc uxproxy time
 
 # Character set library, for use in pterm.
 CHARSET  = sbcsdat slookup sbcs utf8 toucs fromucs xenc mimeenc macenc localenc

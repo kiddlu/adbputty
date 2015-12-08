@@ -630,6 +630,7 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "BugPKSessID2", 2-conf_get_int(conf, CONF_sshbug_pksessid2));
     write_setting_i(sesskey, "BugRekey2", 2-conf_get_int(conf, CONF_sshbug_rekey2));
     write_setting_i(sesskey, "BugMaxPkt2", 2-conf_get_int(conf, CONF_sshbug_maxpkt2));
+    write_setting_i(sesskey, "BugOldGex2", 2-conf_get_int(conf, CONF_sshbug_oldgex2));
     write_setting_i(sesskey, "BugWinadj", 2-conf_get_int(conf, CONF_sshbug_winadj));
     write_setting_i(sesskey, "BugChanReq", 2-conf_get_int(conf, CONF_sshbug_chanreq));
     write_setting_i(sesskey, "StampUtmp", conf_get_int(conf, CONF_stamp_utmp));
@@ -799,8 +800,8 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "PassiveTelnet", 0, conf, CONF_passive_telnet);
     gppi(sesskey, "BackspaceIsDelete", 1, conf, CONF_bksp_is_delete);
     gppi(sesskey, "RXVTHomeEnd", 0, conf, CONF_rxvt_homeend);
-    gppi(sesskey, "LinuxFunctionKeys", 2, conf, CONF_funky_type);
-    gppi(sesskey, "NoApplicationKeys", 1, conf, CONF_no_applic_k);
+    gppi(sesskey, "LinuxFunctionKeys", 0, conf, CONF_funky_type);
+    gppi(sesskey, "NoApplicationKeys", 0, conf, CONF_no_applic_k);
     gppi(sesskey, "NoApplicationCursors", 0, conf, CONF_no_applic_c);
     gppi(sesskey, "NoMouseReporting", 0, conf, CONF_no_mouse_rep);
     gppi(sesskey, "NoRemoteResize", 0, conf, CONF_no_remote_resize);
@@ -864,7 +865,7 @@ void load_open_settings(void *sesskey, Conf *conf)
 		 / 1000
 #endif
 		 );
-    gppi(sesskey, "ScrollbackLines", 9999, conf, CONF_savelines);
+    gppi(sesskey, "ScrollbackLines", 2000, conf, CONF_savelines);
     gppi(sesskey, "DECOriginMode", 0, conf, CONF_dec_om);
     gppi(sesskey, "AutoWrapMode", 1, conf, CONF_wrap_mode);
     gppi(sesskey, "LFImpliesCR", 0, conf, CONF_lfhascr);
@@ -977,6 +978,7 @@ void load_open_settings(void *sesskey, Conf *conf)
     i = gppi_raw(sesskey, "BugPKSessID2", 0); conf_set_int(conf, CONF_sshbug_pksessid2, 2-i);
     i = gppi_raw(sesskey, "BugRekey2", 0); conf_set_int(conf, CONF_sshbug_rekey2, 2-i);
     i = gppi_raw(sesskey, "BugMaxPkt2", 0); conf_set_int(conf, CONF_sshbug_maxpkt2, 2-i);
+    i = gppi_raw(sesskey, "BugOldGex2", 0); conf_set_int(conf, CONF_sshbug_oldgex2, 2-i);
     i = gppi_raw(sesskey, "BugWinadj", 0); conf_set_int(conf, CONF_sshbug_winadj, 2-i);
     i = gppi_raw(sesskey, "BugChanReq", 0); conf_set_int(conf, CONF_sshbug_chanreq, 2-i);
     conf_set_int(conf, CONF_ssh_simple, FALSE);
@@ -1015,9 +1017,9 @@ static int sessioncmp(const void *av, const void *bv)
      * Alphabetical order, except that "Default Settings" is a
      * special case and comes first.
      */
-    if (!strcmp(a, "默认设置"))
+    if (!strcmp(a, "Default Settings"))
 	return -1;		       /* a comes first */
-    if (!strcmp(b, "默认设置"))
+    if (!strcmp(b, "Default Settings"))
 	return +1;		       /* b comes first */
     /*
      * FIXME: perhaps we should ignore the first & in determining
@@ -1064,7 +1066,7 @@ void get_sesslist(struct sesslist *list, int allocate)
 	p = list->buffer;
 	list->nsessions = 1;	       /* "Default Settings" counts as one */
 	while (*p) {
-	    if (strcmp(p, "默认设置"))
+	    if (strcmp(p, "Default Settings"))
 		list->nsessions++;
 	    while (*p)
 		p++;
@@ -1072,11 +1074,11 @@ void get_sesslist(struct sesslist *list, int allocate)
 	}
 
 	list->sessions = snewn(list->nsessions + 1, char *);
-	list->sessions[0] = "默认设置";
+	list->sessions[0] = "Default Settings";
 	p = list->buffer;
 	i = 1;
 	while (*p) {
-	    if (strcmp(p, "默认设置"))
+	    if (strcmp(p, "Default Settings"))
 		list->sessions[i++] = p;
 	    while (*p)
 		p++;

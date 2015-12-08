@@ -837,7 +837,7 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
     int public_blob_len;
     int i;
     const char *error = NULL;
-    char *comment;
+    char *comment = NULL;
 
     public_blob = NULL;
 
@@ -862,11 +862,10 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 	goto error;
     /* Select key algorithm structure. */
     alg = find_pubkey_alg(b);
+    sfree(b);
     if (!alg) {
-	sfree(b);
 	goto error;
     }
-    sfree(b);
 
     /* Read the Encryption header line. */
     if (!read_header(fp, header) || 0 != strcmp(header, "Encryption"))
@@ -913,6 +912,10 @@ unsigned char *ssh2_userkey_loadpub(const Filename *filename, char **algorithm,
 	sfree(public_blob);
     if (errorstr)
 	*errorstr = error;
+    if (comment && commentptr) {
+        sfree(comment);
+        *commentptr = NULL;
+    }
     return NULL;
 }
 
@@ -1178,12 +1181,12 @@ int key_type(const Filename *filename)
 char *key_type_to_str(int type)
 {
     switch (type) {
-      case SSH_KEYTYPE_UNOPENABLE: return "无法打开文件"; break;
-      case SSH_KEYTYPE_UNKNOWN: return "不是私钥"; break;
-      case SSH_KEYTYPE_SSH1: return "SSH-1 私钥"; break;
-      case SSH_KEYTYPE_SSH2: return "PuTTY SSH-2 私钥"; break;
-      case SSH_KEYTYPE_OPENSSH: return "OpenSSH SSH-2 私钥"; break;
-      case SSH_KEYTYPE_SSHCOM: return "ssh.com SSH-2 私钥"; break;
+      case SSH_KEYTYPE_UNOPENABLE: return "unable to open file"; break;
+      case SSH_KEYTYPE_UNKNOWN: return "not a private key"; break;
+      case SSH_KEYTYPE_SSH1: return "SSH-1 private key"; break;
+      case SSH_KEYTYPE_SSH2: return "PuTTY SSH-2 private key"; break;
+      case SSH_KEYTYPE_OPENSSH: return "OpenSSH SSH-2 private key"; break;
+      case SSH_KEYTYPE_SSHCOM: return "ssh.com SSH-2 private key"; break;
       default: return "INTERNAL ERROR"; break;
     }
 }

@@ -6,7 +6,10 @@
  * welcome.
  */
 
-#include "version.h"
+#define RELEASE 0.66
+#define TEXTVER "Release 0.66"
+#define SSHVER "PuTTY-Release-0.66"
+#define BINARY_VERSION 0,66,0,0
 
 /*
  * The actual VERSIONINFO resource.
@@ -35,16 +38,16 @@ BEGIN
     BLOCK "StringFileInfo"
     BEGIN
 	/* "lang-charset" LLLLCCCC = (UK English, Unicode) */
-	BLOCK "080404B0"
+	BLOCK "080904B0"
 	BEGIN
 	    VALUE "CompanyName",	"Simon Tatham"  /* required :/ */
-	    VALUE "ProductName",	"PuTTY 套件"
+	    VALUE "ProductName",	"PuTTY suite"
 	    VALUE "FileDescription",	APPDESC
 	    VALUE "InternalName",	APPNAME
 	    VALUE "OriginalFilename",	APPNAME
 	    VALUE "FileVersion",	TEXTVER
 	    VALUE "ProductVersion",	TEXTVER
-	    VALUE "LegalCopyright",	"版权所有(C) 1997-2015 Simon Tatham."
+	    VALUE "LegalCopyright",	"Copyright \251 1997-2015 Simon Tatham."
 #if (!defined SNAPSHOT) && (!defined RELEASE) && (!defined PRERELEASE)
 	    /* Only if VS_FF_PRIVATEBUILD. */
 	    VALUE "PrivateBuild",	TEXTVER /* NBI */
@@ -54,6 +57,6 @@ BEGIN
     BLOCK "VarFileInfo"
     BEGIN
 	/* Once again -- same meanings -- apparently necessary */
-	VALUE "Translation", 0x804, 0x4B0
+	VALUE "Translation", 0x809, 1200
     END
 END

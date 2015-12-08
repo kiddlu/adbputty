@@ -76,6 +76,11 @@
 #define WHEEL_DELTA 120
 #endif
 
+/* VK_PACKET, used to send Unicode characters in WM_KEYDOWNs */
+#ifndef VK_PACKET
+#define VK_PACKET 0xE7
+#endif
+
 static Mouse_Button translate_button(Mouse_Button button);
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
@@ -256,7 +261,7 @@ static void start_backend(void)
 		       conf_get_int(conf, CONF_tcp_keepalives));
     back->provide_logctx(backhandle, logctx);
     if (error) {
-	char *str = dupprintf("%s 错误", appname);
+	char *str = dupprintf("%s Error", appname);
 	sprintf(msg, "Unable to open connection to\n"
 		"%.800s\n" "%s", conf_dest(conf), error);
 	MessageBox(NULL, msg, str, MB_ICONERROR | MB_OK);
@@ -326,13 +331,12 @@ static void close_session(void *ignored_context)
     for (i = 0; i < lenof(popup_menus); i++) {
 	DeleteMenu(popup_menus[i].menu, IDM_RESTART, MF_BYCOMMAND);
 	InsertMenu(popup_menus[i].menu, IDM_DUPSESS, MF_BYCOMMAND | MF_ENABLED,
-		   IDM_RESTART, "重启会话(&R)");
+		   IDM_RESTART, "&Restart Session");
     }
 }
 
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
-    WNDCLASS wndclass;
     MSG msg;
     HRESULT hr;
     int guess_width, guess_height;
@@ -351,7 +355,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
     if (!init_winver())
     {
-	char *str = dupprintf("%s 致命错误", appname);
+	char *str = dupprintf("%s Fatal Error", appname);
 	MessageBox(NULL, "Windows refuses to report a version",
 		   str, MB_OK | MB_ICONEXCLAMATION);
 	sfree(str);
@@ -379,7 +383,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      */
     hr = CoInitialize(NULL);
     if (hr != S_OK && hr != S_FALSE) {
-        char *str = dupprintf("%s 致命错误", appname);
+        char *str = dupprintf("%s Fatal Error", appname);
 	MessageBox(NULL, "Failed to initialize COM subsystem",
 		   str, MB_OK | MB_ICONEXCLAMATION);
 	sfree(str);
@@ -508,9 +512,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 				       "currently logged-in user.)\n"
 				       "\n"
 				       "THIS PROCESS WILL DESTROY YOUR SAVED SESSIONS.\n"
-				       "真的确定要继续么？",
+				       "Are you really sure you want to continue?",
 				       appname);
-			s2 = dupprintf("%s 警告", appname);
+			s2 = dupprintf("%s Warning", appname);
 		    }
 		    if (message_box(s1, s2,
 				    MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
@@ -645,6 +649,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     }
 
     if (!prev) {
+        WNDCLASSW wndclass;
+
 	wndclass.style = 0;
 	wndclass.lpfnWndProc = WndProc;
 	wndclass.cbClsExtra = 0;
@@ -654,9 +660,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	wndclass.hCursor = LoadCursor(NULL, IDC_IBEAM);
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
-	wndclass.lpszClassName = appname;
+	wndclass.lpszClassName = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
 
-	RegisterClass(&wndclass);
+	RegisterClassW(&wndclass);
     }
 
     memset(&ucsdata, 0, sizeof(ucsdata));
@@ -690,6 +696,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     {
 	int winmode = WS_OVERLAPPEDWINDOW | WS_VSCROLL;
 	int exwinmode = 0;
+        wchar_t *uappname = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
 	if (!conf_get_int(conf, CONF_scrollbar))
 	    winmode &= ~(WS_VSCROLL);
 	if (conf_get_int(conf, CONF_resize_action) == RESIZE_DISABLED)
@@ -698,10 +705,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    exwinmode |= WS_EX_TOPMOST;
 	if (conf_get_int(conf, CONF_sunken_edge))
 	    exwinmode |= WS_EX_CLIENTEDGE;
-	hwnd = CreateWindowEx(exwinmode, appname, appname,
-			      winmode, CW_USEDEFAULT, CW_USEDEFAULT,
-			      guess_width, guess_height,
-			      NULL, NULL, inst, NULL);
+	hwnd = CreateWindowExW(exwinmode, uappname, uappname,
+                               winmode, CW_USEDEFAULT, CW_USEDEFAULT,
+                               guess_width, guess_height,
+                               NULL, NULL, inst, NULL);
+        sfree(uappname);
     }
 
     /*
@@ -789,7 +797,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
 	popup_menus[SYSMENU].menu = GetSystemMenu(hwnd, FALSE);
 	popup_menus[CTXMENU].menu = CreatePopupMenu();
-	AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "粘贴(&P)");
+	AppendMenu(popup_menus[CTXMENU].menu, MF_ENABLED, IDM_PASTE, "&Paste");
 
 	savedsess_menu = CreateMenu();
 	get_sesslist(&sesslist, TRUE);
@@ -799,25 +807,25 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    m = popup_menus[j].menu;
 
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
-	    AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "事件日志记录(&E)");
+	    AppendMenu(m, MF_ENABLED, IDM_SHOWLOG, "&Event Log");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
-	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "新会话(&W)...");
-	    AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "复制会话(&D)");
+	    AppendMenu(m, MF_ENABLED, IDM_NEWSESS, "Ne&w Session...");
+	    AppendMenu(m, MF_ENABLED, IDM_DUPSESS, "&Duplicate Session");
 	    AppendMenu(m, MF_POPUP | MF_ENABLED, (UINT) savedsess_menu,
-		       "保存会话(&V)");
-	    AppendMenu(m, MF_ENABLED, IDM_RECONF, "修改设置(&G)...");
+		       "Sa&ved Sessions");
+	    AppendMenu(m, MF_ENABLED, IDM_RECONF, "Chan&ge Settings...");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
-	    AppendMenu(m, MF_ENABLED, IDM_COPYALL, "复制所有内容到剪贴板(&O)");
-	    AppendMenu(m, MF_ENABLED, IDM_CLRSB, "清除滚动条(&L)");
-	    AppendMenu(m, MF_ENABLED, IDM_RESET, "重启终端(&T)");
+	    AppendMenu(m, MF_ENABLED, IDM_COPYALL, "C&opy All to Clipboard");
+	    AppendMenu(m, MF_ENABLED, IDM_CLRSB, "C&lear Scrollback");
+	    AppendMenu(m, MF_ENABLED, IDM_RESET, "Rese&t Terminal");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    AppendMenu(m, (conf_get_int(conf, CONF_resize_action)
 			   == RESIZE_DISABLED) ? MF_GRAYED : MF_ENABLED,
-		       IDM_FULLSCREEN, "全屏(&F)");
+		       IDM_FULLSCREEN, "&Full Screen");
 	    AppendMenu(m, MF_SEPARATOR, 0, 0);
 	    if (has_help())
-		AppendMenu(m, MF_ENABLED, IDM_HELP, "帮助(&H)");
-	    str = dupprintf("关于 %s(&A)", appname);
+		AppendMenu(m, MF_ENABLED, IDM_HELP, "&Help");
+	    str = dupprintf("&About %s", appname);
 	    AppendMenu(m, MF_ENABLED, IDM_ABOUT, str);
 	    sfree(str);
 	}
@@ -888,12 +896,34 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	} else
 	    sfree(handles);
 
-	if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+	while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
 	    if (msg.message == WM_QUIT)
 		goto finished;	       /* two-level break */
 
 	    if (!(IsWindow(logbox) && IsDialogMessage(logbox, &msg)))
-		DispatchMessage(&msg);
+		DispatchMessageW(&msg);
+
+            /*
+             * WM_NETEVENT messages seem to jump ahead of others in
+             * the message queue. I'm not sure why; the docs for
+             * PeekMessage mention that messages are prioritised in
+             * some way, but I'm unclear on which priorities go where.
+             *
+             * Anyway, in practice I observe that WM_NETEVENT seems to
+             * jump to the head of the queue, which means that if we
+             * were to only process one message every time round this
+             * loop, we'd get nothing but NETEVENTs if the server
+             * flooded us with data, and stop responding to any other
+             * kind of window message. So instead, we keep on round
+             * this loop until we've consumed at least one message
+             * that _isn't_ a NETEVENT, or run out of messages
+             * completely (whichever comes first). And we don't go to
+             * run_toplevel_callbacks (which is where the netevents
+             * are actually processed, causing fresh NETEVENT messages
+             * to appear) until we've done this.
+             */
+            if (msg.message != WM_NETEVENT)
+                break;
 	}
 
         run_toplevel_callbacks();
@@ -974,7 +1004,7 @@ static void update_savedsess_menu(void)
 		   IDM_SAVED_MIN + (i-1)*MENU_SAVED_STEP,
 		   sesslist.sessions[i]);
     if (sesslist.nsessions <= 1)
-	AppendMenu(savedsess_menu, MF_GRAYED, IDM_SAVED_MIN, "(没有会话)");
+	AppendMenu(savedsess_menu, MF_GRAYED, IDM_SAVED_MIN, "(No sessions)");
 }
 
 /*
@@ -1039,7 +1069,7 @@ void update_specials_menu(void *frontend)
 	if (new_menu) {
 	    InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
 		       MF_BYCOMMAND | MF_POPUP | MF_ENABLED,
-		       (UINT) new_menu, "指定命令(&P)");
+		       (UINT) new_menu, "S&pecial Command");
 	    InsertMenu(popup_menus[j].menu, IDM_SHOWLOG,
 		       MF_BYCOMMAND | MF_SEPARATOR, IDM_SPECIALSEP, 0);
 	}
@@ -2069,10 +2099,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	{
 	    char *str;
 	    show_mouseptr(1);
-	    str = dupprintf("%s 退出确认", appname);
+	    str = dupprintf("%s Exit Confirmation", appname);
 	    if (session_closed || !conf_get_int(conf, CONF_warn_on_close) ||
 		MessageBox(hwnd,
-			   "确定要关闭本会话么？",
+			   "Are you sure you want to close this session?",
 			   str, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON1)
 		== IDOK)
 		DestroyWindow(hwnd);
@@ -3061,7 +3091,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    unsigned char buf[20];
 	    int len;
 
-	    if (wParam == VK_PROCESSKEY) { /* IME PROCESS key */
+	    if (wParam == VK_PROCESSKEY || /* IME PROCESS key */
+                wParam == VK_PACKET) {     /* 'this key is a Unicode char' */
 		if (message == WM_KEYDOWN) {
 		    MSG m;
 		    m.hwnd = hwnd;
@@ -3073,7 +3104,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    } else {
 		len = TranslateKey(message, wParam, lParam, buf);
 		if (len == -1)
-		    return DefWindowProc(hwnd, message, wParam, lParam);
+		    return DefWindowProcW(hwnd, message, wParam, lParam);
 
 		if (len != 0) {
 		    /*
@@ -3177,10 +3208,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	 * we're ready to cope.
 	 */
 	{
-	    char c = (unsigned char)wParam;
-	    term_seen_key_event(term);
-	    if (ldisc)
-		lpage_send(ldisc, CP_ACP, &c, 1, 1);
+            static wchar_t pending_surrogate = 0;
+	    wchar_t c = wParam;
+
+            if (IS_HIGH_SURROGATE(c)) {
+                pending_surrogate = c;
+            } else if (IS_SURROGATE_PAIR(pending_surrogate, c)) {
+                wchar_t pair[2];
+                pair[0] = pending_surrogate;
+                pair[1] = c;
+                term_seen_key_event(term);
+                luni_send(ldisc, pair, 2, 1);
+            } else if (!IS_SURROGATE(c)) {
+                term_seen_key_event(term);
+                luni_send(ldisc, &c, 1, 1);
+            }
 	}
 	return 0;
       case WM_SYSCOLORCHANGE:
@@ -3265,7 +3307,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
      * Any messages we don't process completely above are passed through to
      * DefWindowProc() for default processing.
      */
-    return DefWindowProc(hwnd, message, wParam, lParam);
+    return DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
 /*
